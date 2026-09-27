@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Analytics · CPR Misconceptions Challenge</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%23ee3c36%27 stroke-width=%272.4%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M2 12h5l2-5 4 10 2-5h7%27/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/brand.css">
+<style>
+  .wrap.wide{max-width:1120px}
+  .top{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap;margin-bottom:6px}
+  .top img{height:72px;width:auto}
+  .who{font-size:15px;color:var(--ink-muted);text-align:right}
+  .who button{margin-top:6px}
+  .filters{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin:18px 0 8px;padding:16px;background:var(--mist);border-radius:var(--radius-md)}
+  .filters label{display:flex;flex-direction:column;font-size:14px;font-weight:700;gap:4px}
+  .filters select{width:auto;min-width:170px;padding:9px 12px;font-size:16px}
+  .filters .check{flex-direction:row;align-items:center;gap:8px;font-weight:600;padding-bottom:8px}
+  .filters .check input{width:18px;height:18px}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:18px 0 26px}
+  @media (max-width:760px){.kpis{grid-template-columns:repeat(2,1fr)}}
+  .kpi{border:1px solid var(--mist);border-radius:var(--radius-md);padding:14px 16px}
+  .kpi b{display:block;font-family:var(--display);font-weight:800;font-size:34px;line-height:1.1;color:var(--navy);font-variant-numeric:tabular-nums}
+  .kpi span{font-size:15px;color:var(--ink-muted)}
+  .section{margin:30px 0 0}
+  .section-head{display:flex;justify-content:space-between;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:10px}
+  .section-head h2{font-size:26px;margin:0}
+  .legend{font-size:14px;color:var(--ink-muted);display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+  .sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+  /* overview bars */
+  .bars{display:grid;gap:8px}
+  .bar-row{display:grid;grid-template-columns:34px minmax(150px,300px) 1fr 58px;gap:10px;align-items:center;font-size:15px}
+  @media (max-width:640px){.bar-row{grid-template-columns:30px 1fr 58px}.bar-row .lbl{grid-column:2/4;order:-1;margin-left:40px}}
+  .bar-row .qn{font-family:var(--display);font-weight:800;color:var(--navy)}
+  .track{height:22px;background:#fdeceb;border-radius:var(--radius-sm);overflow:hidden;display:flex}
+  .track .ok{background:var(--navy)}
+  .track .fastwrong{background:var(--red)}
+  .bar-row .val{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+  /* question cards */
+  .qgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media (max-width:860px){.qgrid{grid-template-columns:1fr}}
+  .qcard{border:1px solid var(--mist);border-radius:var(--radius-md);padding:16px 18px}
+  .qcard h3{font-size:18px;margin:0 0 2px}
+  .qcard .stemtxt{font-size:15px;color:var(--ink-muted);margin:0 0 12px;line-height:1.45}
+  .metrics{display:flex;gap:20px;flex-wrap:wrap;margin:0 0 12px}
+  .metrics div{font-size:13px;color:var(--ink-muted)}
+  .metrics b{display:block;font-family:var(--display);font-weight:800;font-size:22px;color:var(--navy);font-variant-numeric:tabular-nums}
+  .metrics .alert b{color:var(--red)}
+  .dist{display:grid;gap:6px}
+  .dist-row{display:grid;grid-template-columns:minmax(120px,210px) 1fr 44px;gap:8px;align-items:center;font-size:14px}
+  .dist-row .t{height:14px;background:var(--mist);border-radius:4px;overflow:hidden}
+  .dist-row .t i{display:block;height:100%;background:var(--sky)}
+  .dist-row.correct .t i{background:var(--navy)}
+  .dist-row.correct .name{font-weight:700}
+  .dist-row .pct{text-align:right;font-variant-numeric:tabular-nums}
+  .flag{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--red);color:var(--white);padding:2px 9px;border-radius:var(--radius-pill);margin-left:6px;vertical-align:2px}
+  .combo{font-size:14px;margin-top:10px;color:var(--ink-muted)}
+  /* histogram + roles */
+  .two{display:grid;grid-template-columns:1.3fr 1fr;gap:26px}
+  @media (max-width:860px){.two{grid-template-columns:1fr}}
+  .hist{display:flex;align-items:flex-end;gap:6px;height:180px;padding:0 0 4px;border-bottom:2px solid var(--navy)}
+  .hist div{flex:1;background:var(--navy);border-radius:4px 4px 0 0;min-height:2px;position:relative}
+  .hist div span{position:absolute;top:-20px;left:0;right:0;text-align:center;font-size:12px;color:var(--ink-muted)}
+  .hist-x{display:flex;gap:6px;font-size:12px;color:var(--ink-muted);margin-top:4px}
+  .hist-x span{flex:1;text-align:center}
+  .gate{text-align:left;max-width:560px}
+  .sample-banner{background:var(--red);color:var(--white);border-radius:var(--radius-md);padding:12px 16px;font-weight:700;margin:12px 0 0}
+  .exports{display:flex;gap:10px;flex-wrap:wrap}
+  .btn.sm{padding:9px 16px;font-size:16px}
+  .note{font-size:14px;color:var(--ink-muted);margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap wide">
+  <section class="sheet">
+
+    <!-- sign-in gate -->
+    <div id="gate" class="gate hidden">
+      <img class="logo-md" src="assets/recover-logo.webp" alt="RECOVER">
+      <p class="eyebrow">CPR Misconceptions Challenge</p>
+      <h1>Learner analytics</h1>
+      <p class="muted" id="gateMsg">Sign in with an authorized Google account to see results.</p>
+      <div class="row"><button class="btn" id="signInBtn">Sign in with Google</button></div>
+      <p class="small" id="gateErr" style="color:var(--red-deep);margin-top:12px"></p>
+    </div>
+
+    <!-- dashboard -->
+    <div id="dash" class="hidden">
+      <div class="top">
+        <div>
+          <p class="eyebrow">CPR Misconceptions Challenge</p>
+          <h1 style="margin-bottom:4px">Learner analytics</h1>
+          <p class="muted" style="margin:0">Where learners struggle, question by question.</p>
+        </div>
+        <div class="who">
+          <img src="assets/recover-logo.webp" alt="RECOVER">
+          <div id="whoText"></div>
+          <button class="btn ghost sm hidden" id="signOutBtn">Sign out</button>
+        </div>
+      </div>
+
+      <div id="modeNotice" class="notice hidden" style="margin-top:14px"></div>
+
+      <div class="filters">
+        <label>Time period
+          <select id="fPeriod">
+            <option value="month">This month</option>
+            <option value="lastmonth">Last month</option>
+            <option value="90">Last 90 days</option>
+            <option value="365">Last 12 months</option>
+            <option value="all">All time</option>
+          </select>
+        </label>
+        <label>Role
+          <select id="fRole"><option value="">All roles</option></select>
+        </label>
+        <label>Attempts
+          <select id="fAttempts">
+            <option value="first">First attempt per player</option>
+            <option value="all">Every attempt</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" id="fSample"> Show sample data</label>
+      </div>
+      <p class="note">"First attempt per player" shows what learners believed before the game taught them. Repeat plays inflate scores, so use it for spotting misconceptions.</p>
+      <div id="sampleBanner" class="sample-banner hidden">Sample data for demonstration only. These are not real learner results.</div>
+
+      <div id="empty" class="notice hidden"></div>
+
+      <div id="content">
+        <div class="kpis">
+          <div class="kpi"><b id="kGames">0</b><span>games in view</span></div>
+          <div class="kpi"><b id="kPlayers">0</b><span>players</span></div>
+          <div class="kpi"><b id="kPct">–</b><span>average correct</span></div>
+          <div class="kpi"><b id="kScore">–</b><span>average points</span></div>
+        </div>
+
+        <div class="section">
+          <div class="section-head">
+            <h2>Percent correct by question</h2>
+            <div class="legend">
+              <span><i class="sw" style="background:var(--navy)"></i>Correct</span>
+              <span><i class="sw" style="background:var(--red)"></i>Wrong in under <span class="fastSec">10</span> s</span>
+              <span><i class="sw" style="background:#fdeceb;border:1px solid #f3c3c1"></i>Other wrong or timed out</span>
+              <label style="display:flex;gap:6px;align-items:center;font-weight:600">Sort
+                <select id="fSort" style="width:auto;padding:4px 8px;font-size:14px"><option value="order">Question order</option><option value="hard">Hardest first</option></select>
+              </label>
+            </div>
+          </div>
+          <div class="bars" id="bars"></div>
+          <p class="note">A large red segment means many learners answered wrong quickly, which suggests a confidently held misconception rather than uncertainty.</p>
+        </div>
+
+        <div class="section">
+          <div class="section-head"><h2>Question details</h2></div>
+          <div class="qgrid" id="qgrid"></div>
+        </div>
+
+        <div class="section two">
+          <div>
+            <div class="section-head"><h2>Score distribution</h2></div>
+            <div class="hist" id="hist"></div>
+            <div class="hist-x" id="histx"></div>
+            <p class="note">Number of games by questions answered correctly (0–12).</p>
+          </div>
+          <div>
+            <div class="section-head"><h2>By role</h2></div>
+            <div class="board-wrap" id="roles"></div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-head"><h2>Export</h2></div>
+          <div class="exports">
+            <button class="btn ghost sm" id="expQ">Question summary (CSV)</button>
+            <button class="btn ghost sm" id="expRaw">Every answer (CSV)</button>
+          </div>
+          <p class="note">Exports use the filters above. Raw data contains anonymous player IDs, never names.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+  <footer id="footer"></footer>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="js/config.js"></script>
+<script src="js/questions.js"></script>
+<script src="js/store.js"></script>
+<script>
+const C = window.APP_CONFIG, Q = window.QUESTIONS, $ = id => document.getElementById(id);
+const FAST_MS = 10000;          // "fast wrong" threshold
+const ROLES = ["Veterinarian", "Specialist / resident", "Veterinary technician / nurse", "Student", "Other"];
+let cache = { key: null, rows: [] };   // fetched attempts for the current period
+let view = [];                          // rows after role/attempt filters
+
+/* ---------------- helpers ---------------- */
+const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
+const median = arr => { if (!arr.length) return null; const s = [...arr].sort((a, b) => a - b), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+const sec = ms => ms == null ? "–" : (ms / 1000).toFixed(1) + " s";
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+
+function sinceFor(p) {
+  const now = new Date();
+  if (p === "month") return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  if (p === "lastmonth") return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+  if (p === "90") return new Date(now - 90 * 864e5);
+  if (p === "365") return new Date(now - 365 * 864e5);
+  return null;
+}
+function untilFor(p) {
+  const now = new Date();
+  return p === "lastmonth" ? new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)) : null;
+}
+
+/* ---------------- sample data (clearly labeled, for demos) ---------------- */
+function sampleData() {
+  let seed = 20260927; const rnd = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
+  const pCorrect = [.52, .58, .31, .44, .38, .27, .71, .63, .81, .36, .24, .49];   // plausible first-attempt difficulty
+  const fastBias = [.5, .4, .3, .35, .45, .6, .3, .2, .25, .4, .55, .3];          // share of wrong answers made quickly
+  const roleW = [[ROLES[0], .38], [ROLES[1], .14], [ROLES[2], .3], [ROLES[3], .14], [ROLES[4], .04]];
+  const roleAdj = { "Veterinarian": .04, "Specialist / resident": .14, "Veterinary technician / nurse": -.02, "Student": -.08, "Other": -.05 };
+  const pickRole = () => { let x = rnd(); for (const [r, w] of roleW) { if ((x -= w) < 0) return r; } return ROLES[0]; };
+  const out = [], now = Date.now();
+  for (let p = 0; p < 170; p++) {
+    const uid = "sample-" + p, role = pickRole();
+    const plays = rnd() < .22 ? 2 + Math.floor(rnd() * 3) : 1;
+    let t = now - rnd() * 150 * 864e5;
+    for (let k = 0; k < plays; k++) {
+      const learn = k * .12;   // later attempts improve
+      let score = 0, correct = 0, total = 0; const answers = [];
+      Q.forEach((q, i) => {
+        const c = rnd() < Math.min(.97, pCorrect[i] + roleAdj[role] + learn);
+        let ms, to = false, r;
+        if (c) ms = 4000 + rnd() * 14000;
+        else if (rnd() < fastBias[i]) ms = 2500 + rnd() * 6500;
+        else { ms = 10000 + rnd() * 20000; if (ms > 29000) { ms = 30000; to = true; } }
+        if (q.type === "tf") r = to ? "" : ((c ? q.answer[0] : !q.answer[0]) ? "T" : "F");
+        else r = to ? "" : (c ? "0,3" : ["0", "0,1,3", "0,1", "3", "1,3"][Math.floor(rnd() * rnd() * 5)]);
+        const pts = c ? Math.round(1000 - 500 * ms / 30000) : 0;
+        score += pts; correct += c ? 1 : 0; total += ms;
+        answers.push({ q: i + 1, r, c, ms: Math.round(ms), to });
+      });
+      out.push({ uid, role, score, correct, total: Q.length, timeMs: Math.round(total), answers, createdAt: new Date(t), source: "sample" });
+      t += (1 + rnd() * 20) * 864e5; if (t > now) t = now - rnd() * 864e5;
+    }
+  }
+  return out;
+}
+
+/* ---------------- data loading ---------------- */
+async function refresh() {
+  const p = $("fPeriod").value, sample = $("fSample").checked;
+  $("sampleBanner").classList.toggle("hidden", !sample);
+  const key = (sample ? "S:" : "L:") + p;
+  if (cache.key !== key) {
+    $("empty").classList.add("hidden");
+    $("kGames").textContent = "…";
+    try {
+      let rows;
+      if (sample) {
+        const since = sinceFor(p), until = untilFor(p);
+        rows = sampleData().filter(a => (!since || a.createdAt >= since) && (!until || a.createdAt < until));
+      } else {
+        rows = await Store.fetchAttempts(sinceFor(p));
+        const until = untilFor(p); if (until) rows = rows.filter(a => a.createdAt < until);
+      }
+      cache = { key, rows };
+    } catch (e) {
+      console.error(e);
+      showEmpty(e && e.code === "permission-denied"
+        ? "This Google account isn't allowed to read learner results. Ask the site owner to add it to the Firestore rules."
+        : "Results couldn't load. Check your connection and try again.");
+      return;
+    }
+  }
+  applyFilters();
+}
+
+function applyFilters() {
+  const role = $("fRole").value, mode = $("fAttempts").value;
+  let rows = cache.rows.filter(a => !role || a.role === role);
+  if (mode === "first") {
+    const firstBy = new Map();
+    rows.forEach(a => { const f = firstBy.get(a.uid); if (!f || a.createdAt < f.createdAt) firstBy.set(a.uid, a); });
+    rows = [...firstBy.values()];
+  }
+  view = rows;
+  if (!rows.length) {
+    showEmpty($("fSample").checked ? "No sample games in this period." :
+      "No games in this view yet. Try a longer time period, or tick \u201CShow sample data\u201D to preview the dashboard.");
+    return;
+  }
+  $("empty").classList.add("hidden"); $("content").classList.remove("hidden");
+  render();
+}
+function showEmpty(msg) { $("empty").textContent = msg; $("empty").classList.remove("hidden"); $("content").classList.add("hidden"); }
+
+/* ---------------- analysis ---------------- */
+function analyze(rows) {
+  return Q.map((q, i) => {
+    const s = { q, i, n: 0, correct: 0, fastWrong: 0, wrong: 0, timeouts: 0, msC: [], msW: [], resp: {} };
+    rows.forEach(a => {
+      const x = a.answers && a.answers[i]; if (!x) return;
+      s.n++;
+      if (x.c) { s.correct++; s.msC.push(x.ms); }
+      else { s.wrong++; if (x.to) s.timeouts++; else { s.msW.push(x.ms); if (x.ms < FAST_MS) s.fastWrong++; } }
+      const key = x.to ? "(timed out)" : x.r;
+      s.resp[key] = (s.resp[key] || 0) + 1;
+    });
+    s.pct = pct(s.correct, s.n);
+    return s;
+  });
+}
+
+/* ---------------- rendering ---------------- */
+function render() {
+  const rows = view, stats = analyze(rows);
+  // KPIs
+  $("kGames").textContent = rows.length.toLocaleString();
+  $("kPlayers").textContent = new Set(rows.map(a => a.uid)).size.toLocaleString();
+  const totC = rows.reduce((s, a) => s + a.correct, 0);
+  $("kPct").textContent = pct(totC, rows.length * Q.length) + "%";
+  $("kScore").textContent = Math.round(rows.reduce((s, a) => s + a.score, 0) / rows.length).toLocaleString();
+
+  // overview bars
+  const order = $("fSort").value === "hard" ? [...stats].sort((a, b) => a.pct - b.pct) : stats;
+  const bars = $("bars"); bars.replaceChildren();
+  order.forEach(s => {
+    const r = el("div", "bar-row");
+    r.append(el("span", "qn", "Q" + (s.i + 1)), el("span", "lbl", s.q.short));
+    const t = el("div", "track"); t.setAttribute("role", "img");
+    t.setAttribute("aria-label", s.pct + "% correct, " + pct(s.fastWrong, s.n) + "% wrong in under 10 seconds");
+    const ok = el("i", "ok"); ok.style.width = s.pct + "%";
+    const fw = el("i", "fastwrong"); fw.style.width = pct(s.fastWrong, s.n) + "%";
+    t.append(ok, fw); r.append(t, el("span", "val", s.pct + "%"));
+    bars.appendChild(r);
+  });
+
+  // question cards
+  const grid = $("qgrid"); grid.replaceChildren();
+  stats.forEach(s => {
+    const card = el("div", "qcard");
+    const h = el("h3", null, "Q" + (s.i + 1) + ". " + s.q.short);
+    const fwShare = s.wrong ? s.fastWrong / s.wrong : 0;
+    if (s.n >= 10 && s.pct < 50 && fwShare >= .4) h.appendChild(el("span", "flag", "Likely misconception"));
+    card.append(h, el("p", "stemtxt", s.q.stem));
+    const m = el("div", "metrics");
+    const metric = (v, l, alert) => { const d = el("div", alert ? "alert" : null); d.append(el("b", null, v), document.createTextNode(l)); return d; };
+    m.append(metric(s.pct + "%", "correct", s.pct < 50),
+             metric(sec(median(s.msC)), "median time, right"),
+             metric(sec(median(s.msW)), "median time, wrong"),
+             metric(pct(s.timeouts, s.n) + "%", "timed out"));
+    card.appendChild(m);
+
+    const dist = el("div", "dist");
+    if (s.q.type === "tf") {
+      [["True", "T", s.q.answer[0] === true], ["False", "F", s.q.answer[0] === false]].forEach(([lab, k, isC]) => {
+        dist.appendChild(distRow(lab + (isC ? " (correct)" : ""), pct(s.resp[k] || 0, s.n), isC));
+      });
+    } else {
+      // how often each option was selected
+      s.q.options.forEach((opt, k) => {
+        const chosen = Object.entries(s.resp).reduce((acc, [r, n]) => acc + (r.split(",").includes(String(k)) ? n : 0), 0);
+        const isC = s.q.answer.includes(k);
+        dist.appendChild(distRow(opt + (isC ? " (correct)" : ""), pct(chosen, s.n), isC));
+      });
+    }
+    if (s.timeouts) dist.appendChild(distRow("Timed out", pct(s.timeouts, s.n), false));
+    card.appendChild(dist);
+    if (s.q.type === "multi") {
+      const wrongCombos = Object.entries(s.resp).filter(([r]) => r !== "(timed out)" && r !== [...s.q.answer].sort().join(",")).sort((a, b) => b[1] - a[1]);
+      if (wrongCombos.length) {
+        const [r, n] = wrongCombos[0];
+        const names = r ? r.split(",").map(k => s.q.options[+k]).join(" + ") : "(nothing)";
+        card.appendChild(el("p", "combo", "Most common wrong answer: " + names + " (" + pct(n, s.n) + "% of players)"));
+      }
+    }
+    grid.appendChild(card);
+  });
+
+  // histogram
+  const counts = Array(Q.length + 1).fill(0); rows.forEach(a => counts[a.correct]++);
+  const max = Math.max(...counts, 1), hist = $("hist"), hx = $("histx");
+  hist.replaceChildren(); hx.replaceChildren();
+  counts.forEach((c, k) => {
+    const b = el("div"); b.style.height = (c / max * 100) + "%"; b.title = c + " games with " + k + " correct";
+    if (c) b.appendChild(el("span", null, c)); hist.appendChild(b); hx.appendChild(el("span", null, k));
+  });
+
+  // by role (always across all roles in view, ignoring the role filter's single choice)
+  const byRole = {};
+  rows.forEach(a => { const r = a.role || "Not given"; (byRole[r] = byRole[r] || { n: 0, c: 0, s: 0 }); byRole[r].n++; byRole[r].c += a.correct; byRole[r].s += a.score; });
+  const tbl = el("table", "board");
+  tbl.innerHTML = '<thead><tr><th>Role</th><th class="num">Games</th><th class="num">Avg correct</th></tr></thead>';
+  const tb = el("tbody");
+  Object.entries(byRole).sort((a, b) => b[1].n - a[1].n).forEach(([r, v]) => {
+    const tr = el("tr"); tr.append(el("td", null, r), el("td", "num", v.n), el("td", "num", pct(v.c, v.n * Q.length) + "%")); tb.appendChild(tr);
+  });
+  tbl.appendChild(tb); $("roles").replaceChildren(tbl);
+}
+
+function distRow(label, p, isCorrect) {
+  const r = el("div", "dist-row" + (isCorrect ? " correct" : ""));
+  const t = el("div", "t"), i = el("i"); i.style.width = p + "%"; t.appendChild(i);
+  r.append(el("span", "name", label), t, el("span", "pct", p + "%"));
+  return r;
+}
+
+/* ---------------- CSV export ---------------- */
+function csv(rows) { return rows.map(r => r.map(v => { const s = v == null ? "" : String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join(",")).join("\n"); }
+function download(name, text) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["\ufeff" + text], { type: "text/csv;charset=utf-8" }));
+  a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+function stamp() { return new Date().toISOString().slice(0, 10) + ($("fSample").checked ? "-SAMPLE" : ""); }
+$("expQ").addEventListener("click", () => {
+  const head = ["question", "short_label", "players", "percent_correct", "percent_wrong_under_10s", "percent_timed_out", "median_seconds_right", "median_seconds_wrong", "answer_breakdown"];
+  const body = analyze(view).map(s => [s.i + 1, s.q.short, s.n, s.pct, pct(s.fastWrong, s.n), pct(s.timeouts, s.n),
+    median(s.msC) == null ? "" : (median(s.msC) / 1000).toFixed(1), median(s.msW) == null ? "" : (median(s.msW) / 1000).toFixed(1),
+    Object.entries(s.resp).map(([r, n]) => (r || "(none)") + ": " + n).join("; ")]);
+  download("cpr-challenge-questions-" + stamp() + ".csv", csv([head, ...body]));
+});
+$("expRaw").addEventListener("click", () => {
+  const head = ["player_id", "date", "role", "game_score", "game_correct", "question", "response", "correct", "seconds", "timed_out"];
+  const body = [];
+  view.forEach(a => (a.answers || []).forEach(x => body.push([a.uid, a.createdAt.toISOString(), a.role, a.score, a.correct, x.q, x.r, x.c ? 1 : 0, (x.ms / 1000).toFixed(1), x.to ? 1 : 0])));
+  download("cpr-challenge-answers-" + stamp() + ".csv", csv([head, ...body]));
+});
+
+/* ---------------- start-up and sign-in ---------------- */
+function footer() {
+  const em = el("em", null, "Learn to lead when it matters most."), s = el("span", null, C.footer || "");
+  $("footer").replaceChildren(em, s);
+}
+function openDash(label) {
+  $("gate").classList.add("hidden"); $("dash").classList.remove("hidden");
+  $("whoText").textContent = label;
+  refresh();
+}
+
+footer();
+document.querySelectorAll(".fastSec").forEach(e => e.textContent = FAST_MS / 1000);
+ROLES.forEach(r => { const o = el("option", null, r); o.value = r; $("fRole").appendChild(o); });
+["fPeriod", "fSample"].forEach(id => $(id).addEventListener("change", refresh));
+["fRole", "fAttempts"].forEach(id => $(id).addEventListener("change", applyFilters));
+$("fSort").addEventListener("change", () => view.length && render());
+
+if (!Store.live) {
+  $("modeNotice").textContent = "Demo mode: showing games played on this device only. Tick \u201CShow sample data\u201D for a realistic preview.";
+  $("modeNotice").classList.remove("hidden");
+  openDash("Demo mode");
+} else {
+  $("gate").classList.remove("hidden");
+  const allowed = (C.adminEmails || []).map(e => e.toLowerCase());
+  Store.onAdminAuth(user => {
+    if (!user) { $("gate").classList.remove("hidden"); $("dash").classList.add("hidden"); return; }
+    if (!allowed.includes((user.email || "").toLowerCase())) {
+      $("gateErr").textContent = user.email + " isn't on the list of dashboard users.";
+      Store.adminSignOut(); return;
+    }
+    $("signOutBtn").classList.remove("hidden");
+    openDash(user.email);
+  });
+  $("signInBtn").addEventListener("click", async () => {
+    $("gateErr").textContent = "";
+    try { await Store.adminSignIn(); }
+    catch (e) { console.error(e); $("gateErr").textContent = "Sign-in didn't complete (" + (e.code || "error") + "). See SETUP.md, step 2."; }
+  });
+  $("signOutBtn").addEventListener("click", () => Store.adminSignOut());
+}
+</script>
+</body>
+</html>

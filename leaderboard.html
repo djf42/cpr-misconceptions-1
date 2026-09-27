@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Leaderboard · CPR Misconceptions Challenge</title>
+<meta name="description" content="Top scores in the RECOVER CPR Misconceptions Challenge for veterinary professionals.">
+<meta property="og:title" content="CPR Misconceptions Challenge leaderboard">
+<meta property="og:description" content="Twelve questions on the parts of dog and cat CPR that trip up even experienced clinicians. See who's on top this month.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%23ee3c36%27 stroke-width=%272.4%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M2 12h5l2-5 4 10 2-5h7%27/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/brand.css">
+<style>
+  .podium{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:6px 0 22px}
+  .podium > div{border:1px solid var(--mist);border-radius:var(--radius-md);padding:14px 14px 12px}
+  .podium .place{font-family:var(--display);font-weight:800;font-size:30px;line-height:1;color:var(--red)}
+  .podium .who{font-weight:700;font-size:17px;margin-top:6px;overflow-wrap:anywhere}
+  .podium .pts{font-variant-numeric:tabular-nums;color:var(--ink-muted);font-size:15px}
+  .podium .first{background:var(--ice);border-color:var(--ice)}
+  @media (max-width:520px){.podium{grid-template-columns:1fr}}
+  .cta{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;background:var(--navy);color:var(--white);border-radius:var(--radius-md);padding:18px 20px;margin-top:24px}
+  .cta p{margin:0;font-family:var(--display);font-weight:700;font-size:20px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section class="sheet">
+    <div class="strip" aria-hidden="true"><canvas id="heroStrip"></canvas></div>
+    <img class="logo-md" src="assets/recover-logo.webp" alt="RECOVER">
+    <p class="eyebrow">CPR Misconceptions Challenge</p>
+    <h1>Leaderboard</h1>
+    <p class="muted" id="sub">Top scores from veterinary professionals testing their CPR knowledge.</p>
+    <div id="modeNotice" class="notice hidden"></div>
+
+    <div class="tabs" role="tablist" id="tabs">
+      <button role="tab" aria-selected="true" data-period="month" id="tabMonth">This month</button>
+      <button role="tab" aria-selected="false" data-period="all">All time</button>
+    </div>
+    <div id="podium" class="podium"></div>
+    <div class="board-wrap" id="board"></div>
+    <p class="small muted" id="updated" style="margin-top:10px"></p>
+
+    <div class="cta">
+      <p>Think you can do better?</p>
+      <a class="btn" id="playLink" href="index.html" style="text-decoration:none">Play the challenge</a>
+    </div>
+  </section>
+  <footer id="footer"></footer>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="js/config.js"></script>
+<script src="js/questions.js"></script>
+<script src="js/store.js"></script>
+<script src="js/strip.js"></script>
+<script>
+const C = window.APP_CONFIG, $ = id => document.getElementById(id);
+let current = "month";
+
+function footer() {
+  const em = document.createElement("em"); em.textContent = "Learn to lead when it matters most.";
+  const s = document.createElement("span"); s.textContent = C.footer || "";
+  $("footer").replaceChildren(em, s);
+}
+
+async function load() {
+  const period = current === "all" ? "all" : Store.periodKey();
+  $("podium").replaceChildren(); $("board").innerHTML = '<p class="empty">Loading…</p>';
+  try {
+    const rows = await Store.getBoard(period);
+    render(rows);
+    $("updated").textContent = (current === "all" ? "All-time best scores" : Store.periodLabel(period) + " best scores")
+      + " · updated " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  } catch (e) {
+    console.error(e);
+    $("board").innerHTML = '<p class="empty">The leaderboard couldn\u2019t load. Check your connection and refresh.</p>';
+  }
+}
+
+function render(rows) {
+  if (!rows.length) {
+    $("board").innerHTML = '<p class="empty">No scores yet ' + (current === "all" ? "" : "this month") + '. The first player to finish takes the top spot.</p>';
+    return;
+  }
+  // podium for the top three
+  rows.slice(0, 3).forEach((r, i) => {
+    const d = document.createElement("div"); if (i === 0) d.className = "first";
+    const p = document.createElement("div"); p.className = "place"; p.textContent = ["1st", "2nd", "3rd"][i];
+    const w = document.createElement("div"); w.className = "who"; w.textContent = r.name || "Anonymous";
+    const s = document.createElement("div"); s.className = "pts"; s.textContent = (r.score || 0).toLocaleString() + " points · " + r.correct + "/" + r.total;
+    d.append(p, w, s); $("podium").appendChild(d);
+  });
+  const tbl = document.createElement("table"); tbl.className = "board";
+  tbl.innerHTML = '<thead><tr><th>#</th><th>Name</th><th class="num">Correct</th><th class="num">Points</th></tr></thead>';
+  const tb = document.createElement("tbody");
+  rows.forEach((r, i) => {
+    const tr = document.createElement("tr");
+    const c0 = document.createElement("td"); c0.className = "rank"; c0.textContent = i + 1;
+    const c1 = document.createElement("td"); const n = document.createElement("div"); n.textContent = r.name || "Anonymous";
+    const ro = document.createElement("div"); ro.className = "role"; ro.textContent = r.role || ""; c1.append(n, ro);
+    const c2 = document.createElement("td"); c2.className = "num"; c2.textContent = r.correct + "/" + r.total;
+    const c3 = document.createElement("td"); c3.className = "num"; c3.textContent = (r.score || 0).toLocaleString();
+    tr.append(c0, c1, c2, c3); tb.appendChild(tr);
+  });
+  tbl.appendChild(tb); $("board").replaceChildren(tbl);
+}
+
+footer();
+$("tabMonth").textContent = Store.periodLabel(Store.periodKey());
+$("playLink").href = C.playUrl || "index.html";
+if (!Store.live) { $("modeNotice").textContent = "Demo mode: showing scores saved on this device only."; $("modeNotice").classList.remove("hidden"); }
+document.querySelectorAll("#tabs button").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll("#tabs button").forEach(x => x.setAttribute("aria-selected", x === b ? "true" : "false"));
+  current = b.dataset.period; load();
+}));
+Strip.hero($("heroStrip"));
+load();
+setInterval(() => { if (!document.hidden) load(); }, 120000);   // refresh every 2 minutes
+</script>
+</body>
+</html>

@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CPR Misconceptions Challenge</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%23ee3c36%27 stroke-width=%272.4%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M2 12h5l2-5 4 10 2-5h7%27/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/brand.css">
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ============ START ============ -->
+  <section id="screen-start" class="sheet">
+    <div class="strip" aria-hidden="true"><canvas id="heroStrip"></canvas></div>
+    <img class="logo-lg" src="assets/recover-logo.webp" alt="RECOVER">
+    <p class="eyebrow">RECOVER CPR guidelines</p>
+    <h1>CPR Misconceptions Challenge</h1>
+    <p class="muted">Twelve questions on the parts of dog and cat CPR that trip up even experienced clinicians. Answer fast for more points, then read why before moving on.</p>
+
+    <div class="rules-grid">
+      <div><b>Up to 1,000 points</b><span>per correct answer, more the faster you are</span></div>
+      <div><b id="ruleTime">30 seconds</b><span>per question before the trace flatlines</span></div>
+      <div><b>Your best score counts</b><span>play as often as you like; boards reset monthly</span></div>
+    </div>
+
+    <div id="modeNotice" class="notice hidden"></div>
+
+    <div id="joinForm">
+      <div class="name-row">
+        <label class="field"><span>First name</span>
+          <input type="text" id="first" maxlength="20" autocomplete="given-name">
+        </label>
+        <label class="field"><span>Last name</span>
+          <input type="text" id="last" maxlength="30" autocomplete="family-name">
+        </label>
+      </div>
+      <p class="field-note">The public leaderboard shows your first name and last initial only.</p>
+      <label class="field"><span>Your role</span>
+        <select id="role">
+          <option value="">Choose one</option>
+          <option>Veterinarian</option>
+          <option>Specialist / resident</option>
+          <option>Veterinary technician / nurse</option>
+          <option>Student</option>
+          <option>Other</option>
+        </select>
+      </label>
+      <p id="joinErr" class="small" style="color:var(--red-deep)"></p>
+      <div class="row">
+        <button class="btn" id="startBtn">Start the challenge</button>
+        <a class="btn ghost" href="leaderboard.html" style="text-decoration:none">See the leaderboard</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ QUESTION ============ -->
+  <section id="screen-q" class="sheet hidden" aria-live="polite">
+    <div class="strip"><canvas id="timerStrip" aria-hidden="true"></canvas><div class="clock" id="clock">30</div></div>
+    <div class="qhead"><p class="eyebrow">Question <span id="qNum">1</span> of <span id="qTot">12</span></p><span class="running">Score <b id="runScore">0</b></span></div>
+    <div class="progress"><i id="progBar"></i></div>
+    <p class="stem" id="stem"></p>
+    <p class="hint" id="hint"></p>
+    <div class="opts" id="opts"></div>
+    <div class="submit-row hidden" id="submitRow"><button class="btn" id="submitBtn" disabled>Lock in answer</button></div>
+
+    <div id="reveal" class="hidden">
+      <div class="verdict" id="verdict"><b id="verdictText"></b><span class="pts" id="verdictPts"></span></div>
+      <div class="why" id="why"></div>
+      <div class="next-row">
+        <span class="running">Total <b id="runScore2">0</b></span>
+        <button class="btn" id="nextBtn">Next question</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ RESULTS ============ -->
+  <section id="screen-end" class="sheet hidden">
+    <img class="logo-md" src="assets/recover-logo.webp" alt="RECOVER">
+    <span id="pbBadge" class="pb hidden">New personal best</span>
+    <h2>Challenge complete</h2>
+    <div class="bigscore" id="finalScore">0</div>
+    <p class="muted" id="finalSub">points</p>
+    <div class="stats">
+      <div><b id="statCorrect">0/12</b>correct</div>
+      <div><b id="statRank">–</b><span id="statRankLabel">rank this month</span></div>
+      <div><b id="statBest">–</b>your best this month</div>
+    </div>
+    <p id="postStatus" class="small muted"></p>
+    <div class="row" style="margin-bottom:26px">
+      <button class="btn" id="againBtn">Play again</button>
+    </div>
+    <div class="split">
+      <div>
+        <div class="board-head">
+          <h3>Leaderboard</h3>
+          <a class="linkish small" href="leaderboard.html" target="_blank" rel="noopener">Open the public leaderboard</a>
+        </div>
+        <div class="tabs" role="tablist" id="endTabs">
+          <button role="tab" aria-selected="true" data-period="month">This month</button>
+          <button role="tab" aria-selected="false" data-period="all">All time</button>
+        </div>
+        <div class="board-wrap" id="boardEnd"></div>
+      </div>
+      <div>
+        <h3>Review your answers</h3>
+        <div class="review" id="review"></div>
+      </div>
+    </div>
+  </section>
+
+  <footer id="footer"></footer>
+</div>
+
+<!-- Firebase (used only once config.js has your project settings) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="js/config.js"></script>
+<script src="js/questions.js"></script>
+<script src="js/store.js"></script>
+<script src="js/strip.js"></script>
+<script>
+const CONFIG = window.APP_CONFIG, QUESTIONS = window.QUESTIONS;
+const $ = id => document.getElementById(id);
+const screens = ["start", "q", "end"];
+function show(name) { screens.forEach(s => $("screen-" + s).classList.toggle("hidden", s !== name)); window.scrollTo(0, 0); }
+
+const state = { i: 0, score: 0, results: [], name: "", role: "", qStart: 0, locked: false, selected: new Set(), myUid: null, month: null };
+
+function displayName(first, last) {
+  const f = first.trim().replace(/\s+/g, " ");
+  const l = last.trim().replace(/^[^A-Za-z\u00C0-\u024F]+/, "");
+  return (f.charAt(0).toUpperCase() + f.slice(1)) + " " + l.charAt(0).toUpperCase() + ".";
+}
+
+function footer() {
+  const em = document.createElement("em"); em.textContent = "Learn to lead when it matters most.";
+  const s = document.createElement("span"); s.textContent = CONFIG.footer || "";
+  $("footer").replaceChildren(em, s);
+}
+
+function init() {
+  footer();
+  $("ruleTime").textContent = CONFIG.secondsPerQuestion + " seconds";
+  $("qTot").textContent = QUESTIONS.length;
+  const saved = Store.LS.get("cprchal:player", {});
+  $("first").value = saved.first || ""; $("last").value = saved.last || ""; $("role").value = saved.role || "";
+  if (!Store.live) {
+    $("modeNotice").textContent = "Demo mode: scores and results are saved only on this device until the shared database is connected.";
+    $("modeNotice").classList.remove("hidden");
+  }
+  Strip.hero($("heroStrip"));
+}
+
+function start() {
+  const first = $("first").value.trim(), last = $("last").value.trim(), role = $("role").value;
+  if (first.length < 1) { $("joinErr").textContent = "Enter your first name."; $("first").focus(); return; }
+  if (!/[A-Za-z\u00C0-\u024F]/.test(last)) { $("joinErr").textContent = "Enter your last name. Only the initial is shown."; $("last").focus(); return; }
+  if (!role) { $("joinErr").textContent = "Choose your role."; $("role").focus(); return; }
+  $("joinErr").textContent = "";
+  Store.LS.set("cprchal:player", { first, last, role });
+  Object.assign(state, { i: 0, score: 0, results: [], name: displayName(first, last).slice(0, 30), role });
+  show("q"); renderQ();
+}
+
+/* ---------------- questions ---------------- */
+function renderQ() {
+  const q = QUESTIONS[state.i];
+  state.locked = false; state.selected = new Set();
+  $("qNum").textContent = state.i + 1;
+  $("progBar").style.width = (state.i / QUESTIONS.length * 100) + "%";
+  $("runScore").textContent = state.score.toLocaleString();
+  $("stem").textContent = q.stem;
+  $("hint").textContent = q.type === "multi" ? "Select all that apply, then lock in your answer." : "";
+  $("reveal").classList.add("hidden");
+  const opts = $("opts"); opts.replaceChildren();
+  opts.className = "opts" + (q.type === "tf" ? " tf" : "");
+  const labels = q.type === "tf" ? ["True", "False"] : q.options;
+  labels.forEach((lab, idx) => {
+    const b = document.createElement("button"); b.className = "opt"; b.type = "button";
+    if (q.type === "multi") { const bx = document.createElement("span"); bx.className = "box"; b.appendChild(bx); }
+    const t = document.createElement("span"); t.textContent = lab; b.appendChild(t);
+    b.addEventListener("click", () => pick(idx, b));
+    opts.appendChild(b);
+  });
+  $("submitRow").classList.toggle("hidden", q.type !== "multi");
+  $("submitBtn").disabled = true;
+  startTimer();
+}
+
+function pick(idx, btn) {
+  if (state.locked) return;
+  const q = QUESTIONS[state.i];
+  if (q.type === "tf") { lock([idx === 0]); return; }
+  const box = btn.querySelector(".box");
+  if (state.selected.has(idx)) { state.selected.delete(idx); btn.classList.remove("sel"); box.textContent = ""; }
+  else { state.selected.add(idx); btn.classList.add("sel"); box.textContent = "✓"; }
+  $("submitBtn").disabled = state.selected.size === 0;
+}
+
+function lock(response) {
+  if (state.locked) return;
+  state.locked = true; stopTimer();
+  const q = QUESTIONS[state.i];
+  const elapsed = Math.min((performance.now() - state.qStart) / 1000, CONFIG.secondsPerQuestion);
+  const timedOut = response === null;
+  let correct = false, r = "";
+  if (!timedOut) {
+    if (q.type === "tf") { correct = response[0] === q.answer[0]; r = response[0] ? "T" : "F"; }
+    else { const s = [...response].sort((a, b) => a - b); r = s.join(","); correct = r === [...q.answer].sort((a, b) => a - b).join(","); }
+  }
+  const pts = correct ? Math.round(CONFIG.maxPoints - (CONFIG.maxPoints - CONFIG.minPoints) * (elapsed / CONFIG.secondsPerQuestion)) : 0;
+  state.score += pts;
+  state.results.push({ correct, pts, elapsed, timedOut, response, r });
+  finishStrip(correct ? "sinus" : "flat");
+  renderReveal(q, correct, pts, timedOut, response);
+}
+
+function renderReveal(q, correct, pts, timedOut, response) {
+  [...$("opts").children].forEach((b, idx) => {
+    b.disabled = true;
+    const isAns = q.type === "tf" ? (idx === 0) === q.answer[0] : q.answer.includes(idx);
+    const chosen = response && (q.type === "tf" ? (idx === 0) === response[0] : response.includes(idx));
+    if (isAns) { b.classList.add("is-correct"); addTag(b, "Correct"); }
+    else if (chosen) { b.classList.add("is-wrong"); addTag(b, "Your pick"); }
+  });
+  $("submitRow").classList.add("hidden");
+  $("verdict").className = "verdict " + (correct ? "good" : "bad");
+  $("verdictText").textContent = correct ? "Correct" : (timedOut ? "Time's up" : "Not quite");
+  $("verdictPts").textContent = "+" + pts.toLocaleString();
+  const why = $("why"); why.replaceChildren();
+  q.why.forEach(t => { const p = document.createElement("p"); p.textContent = t; why.appendChild(p); });
+  if (q.think) {
+    const d = document.createElement("div"); d.className = "think";
+    const h = document.createElement("p"); h.textContent = "Worth thinking about:"; h.style.margin = "0 0 4px"; d.appendChild(h);
+    const ul = document.createElement("ul");
+    q.think.forEach(t => { const li = document.createElement("li"); li.textContent = t; ul.appendChild(li); });
+    d.appendChild(ul); why.appendChild(d);
+  }
+  const tk = document.createElement("p"); tk.className = "takeaway"; tk.textContent = q.takeaway; why.appendChild(tk);
+  $("runScore").textContent = $("runScore2").textContent = state.score.toLocaleString();
+  $("nextBtn").textContent = state.i === QUESTIONS.length - 1 ? "See my results" : "Next question";
+  $("reveal").classList.remove("hidden");
+  $("nextBtn").focus({ preventScroll: true });
+}
+function addTag(b, text) { const s = document.createElement("span"); s.className = "tag"; s.textContent = text; b.appendChild(s); }
+
+function next() {
+  if (state.i < QUESTIONS.length - 1) { state.i++; renderQ(); window.scrollTo(0, 0); }
+  else finish();
+}
+
+/* ---------------- results ---------------- */
+async function finish() {
+  show("end");
+  const nCorrect = state.results.filter(r => r.correct).length;
+  const totalMs = Math.round(state.results.reduce((s, r) => s + r.elapsed, 0) * 1000);
+  $("finalScore").textContent = state.score.toLocaleString();
+  $("statCorrect").textContent = nCorrect + "/" + QUESTIONS.length;
+  $("statRank").textContent = "–"; $("statBest").textContent = "–";
+  $("pbBadge").classList.add("hidden");
+  renderReview();
+
+  const answers = state.results.map((r, i) => ({ q: i + 1, r: r.r, c: r.correct, ms: Math.round(r.elapsed * 1000), to: r.timedOut }));
+  try {
+    $("postStatus").textContent = "Saving your results…";
+    const out = await Store.submit({ name: state.name, role: state.role, score: state.score, correct: nCorrect, total: QUESTIONS.length, timeMs: totalMs, answers });
+    state.myUid = out.uid; state.month = out.month;
+    const m = out.bests[out.month];
+    $("statBest").textContent = m.best.score.toLocaleString();
+    if (m.improved && m.hadPrevious) $("pbBadge").classList.remove("hidden");
+    $("postStatus").textContent = m.improved
+      ? (Store.live ? "Your score is on the leaderboard as " + state.name + "." : "Demo mode: your score is saved on this device only.")
+      : "Your best score this month is still on the board. Play again to beat it.";
+    const rank = await Store.rankIn(out.month, m.best.score);
+    $("statRank").textContent = rank ? "#" + rank : "–";
+  } catch (e) {
+    console.error(e);
+    $("postStatus").textContent = "Your results couldn't be saved. Check your connection and play again to post a score.";
+  }
+  loadBoard(document.querySelector('#endTabs [aria-selected="true"]').dataset.period);
+}
+
+function renderReview() {
+  const box = $("review"); box.replaceChildren();
+  QUESTIONS.forEach((q, i) => {
+    const r = state.results[i]; if (!r) return;
+    const d = document.createElement("details"), s = document.createElement("summary");
+    const m = document.createElement("span"); m.className = "mark " + (r.correct ? "ok" : "no"); m.textContent = r.correct ? "✓" : "✗";
+    const t = document.createElement("span"); t.textContent = (i + 1) + ". " + q.stem;
+    s.append(m, t); d.appendChild(s);
+    const b = document.createElement("div"); b.className = "body";
+    const ans = q.type === "tf" ? (q.answer[0] ? "True" : "False") : q.answer.map(k => q.options[k]).join(" + ");
+    const p1 = document.createElement("p"); const bb = document.createElement("b"); bb.textContent = "Answer: ";
+    p1.append(bb, document.createTextNode(ans)); b.appendChild(p1);
+    const p2 = document.createElement("p"); p2.textContent = q.takeaway; b.appendChild(p2);
+    d.appendChild(b); box.appendChild(d);
+  });
+}
+
+async function loadBoard(which) {
+  const el = $("boardEnd"); el.innerHTML = '<p class="empty">Loading…</p>';
+  const period = which === "all" ? "all" : (state.month || Store.periodKey());
+  try { renderBoard(el, await Store.getBoard(period), state.myUid); }
+  catch (e) { console.error(e); el.innerHTML = '<p class="empty">The leaderboard couldn\u2019t load. Check your connection and try again.</p>'; }
+}
+
+function renderBoard(el, rows, myUid) {
+  if (!rows.length) { el.innerHTML = '<p class="empty">No scores yet. Be the first on the board.</p>'; return; }
+  const tbl = document.createElement("table"); tbl.className = "board";
+  tbl.innerHTML = '<thead><tr><th>#</th><th>Name</th><th class="num">Correct</th><th class="num">Points</th></tr></thead>';
+  const tb = document.createElement("tbody");
+  rows.forEach((r, i) => {
+    const tr = document.createElement("tr"); if (myUid && r.id === myUid) tr.className = "me";
+    const c0 = document.createElement("td"); c0.className = "rank"; c0.textContent = i + 1;
+    const c1 = document.createElement("td"); const n = document.createElement("div"); n.textContent = r.name || "Anonymous";
+    const ro = document.createElement("div"); ro.className = "role"; ro.textContent = r.role || ""; c1.append(n, ro);
+    const c2 = document.createElement("td"); c2.className = "num"; c2.textContent = (r.correct ?? "–") + "/" + (r.total ?? QUESTIONS.length);
+    const c3 = document.createElement("td"); c3.className = "num"; c3.textContent = (r.score || 0).toLocaleString();
+    tr.append(c0, c1, c2, c3); tb.appendChild(tr);
+  });
+  tbl.appendChild(tb); el.replaceChildren(tbl);
+}
+
+/* ---------------- timer strip ---------------- */
+let timerRAF = null;
+function startTimer() {
+  const c = $("timerStrip"), clock = $("clock"), T = CONFIG.secondsPerQuestion * 1000;
+  state.qStart = performance.now();
+  const { ctx, w, h } = Strip.setup(c);
+  const beatW = Math.max(90, w / 7), amp = h * .34, base = h * .64;
+  const draw = now => {
+    const el = now - state.qStart, frac = Math.min(1, el / T), left = Math.max(0, Math.ceil((T - el) / 1000));
+    clock.textContent = left; clock.classList.toggle("late", left <= 5);
+    const lim = frac * w;
+    ctx.clearRect(0, 0, w, h); ctx.lineWidth = 2.5; ctx.lineJoin = "round";
+    ctx.strokeStyle = left <= 5 ? "#ee3c36" : "#ffffff"; ctx.beginPath();
+    for (let x = 0; x <= lim; x++) { const y = base - amp * Strip.pqrst((x / beatW) % 1); x ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+    ctx.stroke();
+    ctx.fillStyle = ctx.strokeStyle; ctx.beginPath(); ctx.arc(lim, base - amp * Strip.pqrst((lim / beatW) % 1), 3.5, 0, 7); ctx.fill();
+    if (frac >= 1) { lock(null); return; }
+    timerRAF = requestAnimationFrame(draw);
+  };
+  cancelAnimationFrame(timerRAF); timerRAF = requestAnimationFrame(draw);
+}
+function stopTimer() { cancelAnimationFrame(timerRAF); }
+function finishStrip(kind) {
+  const { ctx, w, h } = Strip.setup($("timerStrip"));
+  const lim = Math.min(1, (performance.now() - state.qStart) / (CONFIG.secondsPerQuestion * 1000)) * w;
+  const beatW = Math.max(90, w / 7), amp = h * .34, base = h * .64;
+  ctx.lineWidth = 2.5; ctx.lineJoin = "round"; ctx.strokeStyle = "#ffffff"; ctx.beginPath();
+  for (let x = 0; x <= lim; x++) { const y = base - amp * Strip.pqrst((x / beatW) % 1); x ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+  ctx.stroke();
+  ctx.strokeStyle = kind === "sinus" ? "#84d1f5" : "#ee3c36"; ctx.beginPath();
+  ctx.moveTo(lim, base - amp * Strip.pqrst((lim / beatW) % 1));
+  for (let x = lim; x <= w; x++) ctx.lineTo(x, kind === "sinus" ? base - amp * Strip.pqrst((x / beatW) % 1) : base);
+  ctx.stroke();
+  $("clock").classList.remove("late"); $("clock").textContent = kind === "sinus" ? "✓" : "–";
+}
+
+/* ---------------- wiring ---------------- */
+$("startBtn").addEventListener("click", start);
+["first", "last"].forEach(id => $(id).addEventListener("keydown", e => { if (e.key === "Enter") start(); }));
+$("submitBtn").addEventListener("click", () => lock([...state.selected]));
+$("nextBtn").addEventListener("click", next);
+$("againBtn").addEventListener("click", () => { show("start"); Strip.hero($("heroStrip")); });
+document.querySelectorAll("#endTabs button").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll("#endTabs button").forEach(x => x.setAttribute("aria-selected", x === b ? "true" : "false"));
+  loadBoard(b.dataset.period);
+}));
+let rsz; addEventListener("resize", () => { clearTimeout(rsz); rsz = setTimeout(() => { if (!$("screen-start").classList.contains("hidden")) Strip.hero($("heroStrip")); }, 150); });
+init();
+</script>
+</body>
+</html>
