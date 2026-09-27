@@ -274,9 +274,13 @@ async function refresh() {
       cache = { key, rows };
     } catch (e) {
       console.error(e);
-      showEmpty(e && e.code === "permission-denied"
-        ? "This Google account isn't allowed to read learner results. Ask the site owner to add it to the Firestore rules."
-        : "Results couldn't load. Check your connection and try again.");
+      const code = (e && e.code) || "unknown", msg = (e && e.message) || String(e);
+      const hint = code === "permission-denied"
+        ? "The database rules didn't recognize this account as a dashboard user. Check that its address is in isAdmin() in the Firestore rules, exactly as shown above, and that the rules were published."
+        : code === "failed-precondition" && /index/i.test(msg)
+        ? "The database needs an index for this query. The link in the details below creates it in one click; it takes a few minutes to build."
+        : "Results couldn't load.";
+      showEmpty(hint + "  Details: " + code + " \u2014 " + msg);
       return;
     }
   }
