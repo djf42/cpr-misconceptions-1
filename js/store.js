@@ -143,17 +143,28 @@
   }
   async function adminSignOut() { if (auth) await auth.signOut(); }
 
-  // attempts since a Date (or all if null), newest first, capped for safety
+  // attempts since a Date (or all if null), newest first.
+  // Firestore allows at most 10,000 per request, so load in pages of 5,000.
   async function fetchAttempts(since, cap) {
-    cap = cap || 20000;
+    cap = cap || 50000;
     if (live) {
-      let q = db.collection("attempts");
-      if (since) q = q.where("createdAt", ">=", firebase.firestore.Timestamp.fromDate(since));
-      const snap = await q.orderBy("createdAt", "desc").limit(cap).get();
-      return snap.docs.map(d => {
-        const x = d.data();
-        return Object.assign({}, x, { createdAt: x.createdAt && x.createdAt.toDate ? x.createdAt.toDate() : new Date() });
-      });
+      const PAGE = 5000, out = [];
+      let base = db.collection("attempts");
+      if (since) base = base.where("createdAt", ">=", firebase.firestore.Timestamp.fromDate(since));
+      base = base.orderBy("createdAt", "desc");
+      let last = null;
+      while (out.length < cap) {
+        let q = base.limit(Math.min(PAGE, cap - out.length));
+        if (last) q = q.startAfter(last);
+        const snap = await q.get();
+        snap.docs.forEach(d => {
+          const x = d.data();
+          out.push(Object.assign({}, x, { createdAt: x.createdAt && x.createdAt.toDate ? x.createdAt.toDate() : new Date() }));
+        });
+        if (snap.docs.length < PAGE) break;
+        last = snap.docs[snap.docs.length - 1];
+      }
+      return out;
     }
     return LS.get("cprchal:demoAttempts", [])
       .map(a => Object.assign({}, a, { createdAt: new Date(a.createdAt) }))
