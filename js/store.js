@@ -3,15 +3,19 @@
    LIVE mode  — Firebase configured in config.js.
    DEMO mode  — no Firebase; everything is kept in this browser only.
 
-   Firestore layout
-     boards/{period}/players/{uid}   best score per player, period = "all" or "m-YYYY-MM"
+   Firestore layout (each game sets its own collection names in window.GAME,
+   following the pattern <game>_boards and <game>_attempts)
+     <game>_boards/{period}/players/{uid}   best score per player, period = "all" or "m-YYYY-MM"
                                      { name, role, score, correct, total, timeMs, updatedAt }
-     attempts/{autoId}               every finished game, no names (admin-only read)
+     <game>_attempts/{autoId}               every finished game, no names (admin-only read)
                                      { uid, period, role, score, correct, total, timeMs,
                                        answers:[{q, r, c, ms, to}], source, v, createdAt }
    ================================================================= */
 (function () {
   const C = window.APP_CONFIG || {};
+  // Which game is using the store. The misconceptions game uses the defaults;
+  // other games set window.GAME before loading this file.
+  const G = Object.assign({ boards: "boards", attempts: "attempts", prefix: "cprchal", source: "web", v: 2 }, window.GAME || {});
   const NQ = (window.QUESTIONS || []).length;
 
   const LS = {
@@ -57,17 +61,17 @@
   async function getBoard(period, limit) {
     limit = limit || C.leaderboardSize || 25;
     if (live) {
-      const snap = await db.collection("boards").doc(period).collection("players")
+      const snap = await db.collection(G.boards).doc(period).collection("players")
         .orderBy("score", "desc").limit(limit).get();
       return sortBoard(snap.docs.map(d => Object.assign({ id: d.id }, d.data())));
     }
-    const all = LS.get("cprchal:demoBoards", {});
+    const all = LS.get(G.prefix + ":demoBoards", {});
     return sortBoard(Object.entries(all[period] || {}).map(([id, r]) => Object.assign({ id }, r))).slice(0, limit);
   }
 
   async function rankIn(period, score) {
     if (live) {
-      const col = db.collection("boards").doc(period).collection("players");
+      const col = db.collection(G.boards).doc(period).collection("players");
       try {
         const agg = await col.where("score", ">", score).count().get();
         return agg.data().count + 1;
@@ -77,28 +81,28 @@
         return above < rows.length ? above + 1 : null;
       }
     }
-    const rows = Object.values((LS.get("cprchal:demoBoards", {}))[period] || {});
+    const rows = Object.values((LS.get(G.prefix + ":demoBoards", {}))[period] || {});
     return rows.filter(r => r.score > score).length + 1;
   }
 
   async function getMine(period, uid) {
     if (live) {
-      const d = await db.collection("boards").doc(period).collection("players").doc(uid).get();
+      const d = await db.collection(G.boards).doc(period).collection("players").doc(uid).get();
       return d.exists ? d.data() : null;
     }
-    return ((LS.get("cprchal:demoBoards", {}))[period] || {})[uid] || null;
+    return ((LS.get(G.prefix + ":demoBoards", {}))[period] || {})[uid] || null;
   }
 
   async function putBest(period, uid, rec) {
     if (live) {
-      await db.collection("boards").doc(period).collection("players").doc(uid)
+      await db.collection(G.boards).doc(period).collection("players").doc(uid)
         .set(Object.assign({}, rec, { updatedAt: firebase.firestore.FieldValue.serverTimestamp() }));
       return;
     }
-    const all = LS.get("cprchal:demoBoards", {});
+    const all = LS.get(G.prefix + ":demoBoards", {});
     all[period] = all[period] || {};
     all[period][uid] = Object.assign({}, rec, { updatedAt: new Date().toISOString() });
-    LS.set("cprchal:demoBoards", all);
+    LS.set(G.prefix + ":demoBoards", all);
   }
 
   // ---------- submit a finished game ----------
@@ -110,13 +114,13 @@
     const base = { score: result.score, correct: result.correct, total: result.total, timeMs: result.timeMs };
 
     // 1. raw attempt for analytics (no name stored)
-    const attempt = Object.assign({ uid, period: month, role: result.role, answers: result.answers, source: "web", v: 2 }, base);
+    const attempt = Object.assign({ uid, period: month, role: result.role, answers: result.answers, source: G.source, v: G.v }, base);
     if (live) {
       attempt.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-      await db.collection("attempts").add(attempt);
+      await db.collection(G.attempts).add(attempt);
     } else {
       attempt.createdAt = new Date().toISOString();
-      const list = LS.get("cprchal:demoAttempts", []); list.push(attempt); LS.set("cprchal:demoAttempts", list);
+      const list = LS.get(G.prefix + ":demoAttempts", []); list.push(attempt); LS.set(G.prefix + ":demoAttempts", list);
     }
 
     // 2. personal bests on the monthly and all-time boards
@@ -149,7 +153,7 @@
     cap = cap || 50000;
     if (live) {
       const PAGE = 5000, out = [];
-      let base = db.collection("attempts");
+      let base = db.collection(G.attempts);
       if (since) base = base.where("createdAt", ">=", firebase.firestore.Timestamp.fromDate(since));
       base = base.orderBy("createdAt", "desc");
       let last = null;
@@ -166,7 +170,7 @@
       }
       return out;
     }
-    return LS.get("cprchal:demoAttempts", [])
+    return LS.get(G.prefix + ":demoAttempts", [])
       .map(a => Object.assign({}, a, { createdAt: new Date(a.createdAt) }))
       .filter(a => !since || a.createdAt >= since)
       .sort((a, b) => b.createdAt - a.createdAt);

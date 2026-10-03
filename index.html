@@ -8,7 +8,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/brand.css">
+<link rel="stylesheet" href="css/brand.css?v=2026-10-04a">
+<script>
+  // Which game this is: each game keeps its scores and results in its own Firestore collections
+  window.GAME = { boards: "misconceptions_boards", attempts: "misconceptions_attempts", prefix: "cprchal" };
+</script>
 </head>
 <body>
 <div class="wrap">
@@ -119,10 +123,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="js/config.js"></script>
-<script src="js/questions.js"></script>
-<script src="js/store.js"></script>
-<script src="js/strip.js"></script>
+<script src="js/config.js?v=2026-10-04a"></script>
+<script src="js/questions.js?v=2026-10-04a"></script>
+<script src="js/store.js?v=2026-10-04a"></script>
+<script src="js/strip.js?v=2026-10-04a"></script>
 <script>
 const CONFIG = window.APP_CONFIG, QUESTIONS = window.QUESTIONS;
 const $ = id => document.getElementById(id);

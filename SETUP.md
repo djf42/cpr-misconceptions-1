@@ -27,9 +27,9 @@ assets/recover-logo.webp the RECOVER logo
 
 1. Go to https://console.firebase.google.com and sign in with a Google account. A RECOVER-owned account is best, so the project doesn't depend on one person.
 2. Click **Create a project** and name it (e.g. `recover-cpr-challenge`). You can turn Google Analytics off.
-3. Open **Build → Firestore Database → Create database**. Choose a location near most learners (e.g. `nam5 (us-central)`), then **Start in production mode**.
+3. In the left menu, open **Databases & Storage → Firestore**, then click **Create database**. Choose a location near most learners (e.g. `nam5 (us-central)`), then **Start in production mode**.
 4. Open **Project settings** (gear icon) → **General** → **Your apps** → the **</>** (web) icon. Give it a nickname, leave Firebase Hosting unchecked, and click **Register app**.
-5. Copy the block inside `const firebaseConfig = { ... }` and paste it into `js/config.js`, replacing `firebase: null,`:
+5. Firebase now shows some code that starts with `const firebaseConfig = {`. You need only the lines **between** the `{` and `}`. Open `js/config.js` in a text editor and replace the line `firebase: null,` with `firebase: {`, then those lines, then `},`. When you're done, that part of `config.js` should look like this (with your own values). Don't copy `const firebaseConfig =` or the final `;`:
 
 ```js
 firebase: {
@@ -50,16 +50,16 @@ This config is safe to publish. It identifies the project; the security rules in
 
 ## 2. Turn on sign-in
 
-1. Open **Build → Authentication → Get started → Sign-in method**.
+1. In the left menu, open **Security → Authentication** and click **Get started**, then open the **Sign-in method** tab.
 2. Enable **Anonymous**. Learners are signed in invisibly, with no account or password. This gives each browser a private ID so players can only update their own leaderboard entry.
-3. Enable **Google** and pick a support email. This is only used by dashboard users.
-4. Open **Authentication → Settings → Authorized domains → Add domain** and add your GitHub Pages domain, e.g. `yourname.github.io` (just the domain, no `https://` or folder).
+3. Click **Add new provider**, choose **Google**, enable it and pick a support email. This is only used by dashboard users.
+4. Open the **Settings** tab in Authentication, then **Authorized domains → Add domain**, and add your GitHub Pages domain, e.g. `yourname.github.io` (just the domain, no `https://` or folder).
 
 ---
 
 ## 3. Security rules
 
-Open **Firestore Database → Rules**, replace everything with the rules below, **change the email address** in `isAdmin()` to match `adminEmails` in `config.js`, and click **Publish**.
+In the left menu, open **Databases & Storage → Firestore** (or **Firestore** under Project shortcuts), then the **Rules** tab, replace everything with the rules below, **change the email address** in `isAdmin()` to match `adminEmails` in `config.js`, and click **Publish**.
 
 ```
 rules_version = '2';
@@ -73,42 +73,44 @@ service cloud.firestore {
         && request.auth.token.email in ['you@example.org'];
     }
 
-    function validEntry(d) {
+    // A leaderboard entry for a game with n questions/rhythms
+    function validEntry(d, n) {
       return d.keys().hasOnly(['name','role','score','correct','total','timeMs','updatedAt'])
         && d.name is string && d.name.size() <= 30
         && d.name.matches('^.{1,27} [^ ]\\.$')          // "First L." only
         && d.role is string && d.role.size() <= 40
-        && d.total == 12
-        && d.correct is int && d.correct >= 0 && d.correct <= 12
+        && d.total == n
+        && d.correct is int && d.correct >= 0 && d.correct <= n
         && d.score is int
         && d.score >= d.correct * 500 && d.score <= d.correct * 1000
         && d.timeMs is int && d.timeMs >= 0
         && d.updatedAt == request.time;
     }
+    function validPeriod(period) {
+      return period == 'all' || period.matches('^m-[0-9]{4}-[0-9]{2}$');
+    }
+    // A finished game's per-question results (no names)
+    function validAttempt(d, n) {
+      return d.keys().hasOnly(['uid','period','role','score','correct','total','timeMs','answers','source','v','createdAt'])
+        && d.uid == request.auth.uid
+        && d.total == n
+        && d.answers is list && d.answers.size() == n
+        && d.score is int
+        && d.createdAt == request.time;
+    }
 
-    // Leaderboards: anyone can read; each player writes only their own entry
-    match /boards/{period}/players/{uid} {
+    // ---- CPR Misconceptions Challenge (12 questions) ----
+    match /misconceptions_boards/{period}/players/{uid} {
       allow read: if true;
       allow create: if request.auth != null && request.auth.uid == uid
-        && (period == 'all' || period.matches('^m-[0-9]{4}-[0-9]{2}$'))
-        && validEntry(request.resource.data);
+        && validPeriod(period) && validEntry(request.resource.data, 12);
       allow update: if request.auth != null && request.auth.uid == uid
-        && validEntry(request.resource.data)
+        && validEntry(request.resource.data, 12)
         && request.resource.data.score >= resource.data.score;
       allow delete: if isAdmin();
     }
-
-    // Per-question results: no names; players can add, only dashboard users can read
-    match /attempts/{attemptId} {
-      allow create: if request.auth != null
-        && request.resource.data.keys().hasOnly(
-             ['uid','period','role','score','correct','total','timeMs','answers','source','v','createdAt'])
-        && request.resource.data.uid == request.auth.uid
-        && request.resource.data.total == 12
-        && request.resource.data.answers is list
-        && request.resource.data.answers.size() == 12
-        && request.resource.data.score is int
-        && request.resource.data.createdAt == request.time;
+    match /misconceptions_attempts/{attemptId} {
+      allow create: if request.auth != null && validAttempt(request.resource.data, 12);
       allow read, delete: if isAdmin();
     }
 
@@ -118,6 +120,8 @@ service cloud.firestore {
   }
 }
 ```
+
+**If the ECG Rhythm Challenge uses this same Firebase project,** paste the combined rules from that game's package (`firestore-rules.txt`) instead, since a project has only one set of rules and it must cover both games.
 
 What the rules guarantee:
 - The public can see leaderboard names, roles and scores, and nothing else.
@@ -140,7 +144,7 @@ To add a dashboard user later, add their Google address in **both** places: `isA
    - Public leaderboard: `https://yourname.github.io/cpr-challenge/leaderboard.html`
    - Dashboard: `https://yourname.github.io/cpr-challenge/dashboard.html`
 
-To change anything later, upload the edited file to the same place in the repository.
+To change anything later, upload the edited file to the same place in the repository. If you change a file in `js` or `css`, also change the version tag (`?v=2026-09-27b`) where each page loads it, at the bottom of `index.html`, `leaderboard.html` and `dashboard.html`, so browsers fetch the new file instead of a saved copy. Any new value works, e.g. `?v=2026-10-15`.
 
 ---
 
@@ -150,7 +154,7 @@ To change anything later, upload the edited file to the same place in the reposi
 2. Open the public leaderboard in a private/incognito window. Your entry should appear.
 3. Play again with a better score and confirm your leaderboard entry updates (you should appear only once).
 4. Open the dashboard, sign in with your Google account, and confirm your games appear.
-5. In Firebase, open **Firestore Database → Data**. You should see `boards` and `attempts`.
+5. In Firebase, open **Firestore** and its **Data** tab. You should see `misconceptions_boards` and `misconceptions_attempts`.
 
 If something doesn't work, the browser's developer console (F12 → Console) usually names the problem. The most common causes are a missed step in section 2 (Anonymous sign-in off, or the GitHub domain not authorized) or a typo in the rules.
 
@@ -167,7 +171,7 @@ If something doesn't work, the browser's developer console (F12 → Console) usu
 
 ## 7. Managing the leaderboard
 
-- **Remove an entry:** Firestore Database → Data → `boards` → the month (e.g. `m-2026-10`) or `all` → `players` → select the entry → three-dot menu → **Delete document**.
+- **Remove an entry:** Firestore → Data tab → `misconceptions_boards` → the month (e.g. `m-2026-10`) or `all` → `players` → select the entry → three-dot menu → **Delete document**.
 - **Free-plan capacity:** each finished game uses up to 3 writes and roughly 30–55 reads (mostly loading the top 25). The free plan's 20,000 writes and 50,000 reads per day allow roughly 1,000 games a day. Opening the dashboard reads one record per game in the chosen time period, so an "All time" view with 5,000 games uses 5,000 reads; prefer shorter periods once data builds up. If limits are reached, the game still plays; saving and the leaderboard resume after the daily reset (midnight Pacific).
 
 ## 8. Known limits
@@ -176,7 +180,11 @@ If something doesn't work, the browser's developer console (F12 → Console) usu
 - Scoring happens in the browser. The rules reject impossible scores, but a technically skilled person could post a plausible fake. The public board is for motivation, not prizes.
 - The answers are visible in the page source to anyone who looks.
 
-## 9. Moving to Docebo later
+## 9. Naming for future games
+
+Every game keeps its data in two Firestore collections named after the game: `<game>_boards` (leaderboards) and `<game>_attempts` (per-question results for the dashboard). This game uses `misconceptions_boards` and `misconceptions_attempts`; the ECG Rhythm Challenge uses `rhythm_boards` and `rhythm_attempts`. Each game's pages set these names near the top (`window.GAME = { ... }`), and each game needs a matching pair of blocks in the shared Firestore rules.
+
+## 10. Moving to Docebo later
 
 The Docebo version reuses almost everything here. The planned changes:
 - The game gets packaged as a **SCORM 2004** zip and uploaded to a Docebo course.
@@ -184,3 +192,4 @@ The Docebo version reuses almost everything here. The planned changes:
 - Each answer is also reported to Docebo, so its **Answers breakdown** report works alongside this dashboard.
 - The public leaderboard stays on GitHub Pages; set `playUrl` in `config.js` to the Docebo course link so "Play the challenge" sends people there.
 - Add your Docebo domain to **Authentication → Authorized domains**.
+
