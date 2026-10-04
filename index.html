@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/brand.css?v=2026-10-04a">
+<link rel="stylesheet" href="css/brand.css?v=2026-10-04b">
 <script>
   // Which game this is: each game keeps its scores and results in its own Firestore collections
   window.GAME = { boards: "misconceptions_boards", attempts: "misconceptions_attempts", prefix: "cprchal" };
@@ -28,7 +28,7 @@
     <div class="rules-grid">
       <div><b>Up to 1,000 points</b><span>per correct answer, more the faster you are</span></div>
       <div><b id="ruleTime">30 seconds</b><span>per question before the trace flatlines</span></div>
-      <div><b>Your best score counts</b><span>play as often as you like; boards reset monthly</span></div>
+      <div><b>Your first score counts</b><span>for the leaderboard; play again anytime to beat your personal best</span></div>
     </div>
 
     <div id="modeNotice" class="notice hidden"></div>
@@ -90,8 +90,9 @@
     <p class="muted" id="finalSub">points</p>
     <div class="stats">
       <div><b id="statCorrect">0/12</b>correct</div>
-      <div><b id="statRank">–</b><span id="statRankLabel">rank this month</span></div>
-      <div><b id="statBest">–</b>your best this month</div>
+      <div><b id="statBoard">–</b>leaderboard score</div>
+      <div><b id="statRank">–</b>leaderboard rank</div>
+      <div><b id="statBest">–</b>personal best</div>
     </div>
     <p id="postStatus" class="small muted"></p>
     <div class="row" style="margin-bottom:26px">
@@ -123,10 +124,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="js/config.js?v=2026-10-04a"></script>
-<script src="js/questions.js?v=2026-10-04a"></script>
-<script src="js/store.js?v=2026-10-04a"></script>
-<script src="js/strip.js?v=2026-10-04a"></script>
+<script src="js/config.js?v=2026-10-04b"></script>
+<script src="js/questions.js?v=2026-10-04b"></script>
+<script src="js/store.js?v=2026-10-04b"></script>
+<script src="js/strip.js?v=2026-10-04b"></script>
 <script>
 const CONFIG = window.APP_CONFIG, QUESTIONS = window.QUESTIONS;
 const $ = id => document.getElementById(id);
@@ -265,7 +266,7 @@ async function finish() {
   const totalMs = Math.round(state.results.reduce((s, r) => s + r.elapsed, 0) * 1000);
   $("finalScore").textContent = state.score.toLocaleString();
   $("statCorrect").textContent = nCorrect + "/" + QUESTIONS.length;
-  $("statRank").textContent = "–"; $("statBest").textContent = "–";
+  $("statRank").textContent = "–"; $("statBest").textContent = "–"; $("statBoard").textContent = "–";
   $("pbBadge").classList.add("hidden");
   renderReview();
 
@@ -274,13 +275,14 @@ async function finish() {
     $("postStatus").textContent = "Saving your results…";
     const out = await Store.submit({ name: state.name, role: state.role, score: state.score, correct: nCorrect, total: QUESTIONS.length, timeMs: totalMs, answers });
     state.myUid = out.uid; state.month = out.month;
-    const m = out.bests[out.month];
-    $("statBest").textContent = m.best.score.toLocaleString();
-    if (m.improved && m.hadPrevious) $("pbBadge").classList.remove("hidden");
-    $("postStatus").textContent = m.improved
-      ? (Store.live ? "Your score is on the leaderboard as " + state.name + "." : "Demo mode: your score is saved on this device only.")
-      : "Your best score this month is still on the board. Play again to beat it.";
-    const rank = await Store.rankIn(out.month, m.best.score);
+    $("statBoard").textContent = out.board.score.toLocaleString();
+    $("statBest").textContent = out.pb.score.toLocaleString();
+    if (out.newPB && out.hadPB) $("pbBadge").classList.remove("hidden");
+    $("postStatus").textContent = (out.posted
+      ? "This was your first game, so it's your leaderboard score" + (Store.live ? ", posted as " + state.name + "." : " (demo mode: saved on this device only).")
+        + " Only your first game counts for the leaderboard, but play as often as you like to beat your personal best."
+      : "Only your first game counts for the leaderboard, so this game was practice. Keep playing to beat your personal best.");
+    const rank = await Store.rankIn("all", out.board.score);
     $("statRank").textContent = rank ? "#" + rank : "–";
   } catch (e) {
     console.error(e);

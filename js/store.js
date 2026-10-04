@@ -93,7 +93,7 @@
     return ((LS.get(G.prefix + ":demoBoards", {}))[period] || {})[uid] || null;
   }
 
-  async function putBest(period, uid, rec) {
+  async function putEntry(period, uid, rec) {
     if (live) {
       await db.collection(G.boards).doc(period).collection("players").doc(uid)
         .set(Object.assign({}, rec, { updatedAt: firebase.firestore.FieldValue.serverTimestamp() }));
@@ -106,8 +106,14 @@
   }
 
   // ---------- submit a finished game ----------
+  // Leaderboards are FIRST-SCORE: only a player's first game ever is posted (to the all-time board
+  // and to the board for the month they first played). Later games are practice: they still go to
+  // the analytics, and update the player's personal best (kept on this device).
   // result: { name, role, score, correct, total, timeMs, answers }
-  // returns { uid, month, bests: { all:{improved, best}, [month]:{improved, best} } }
+  // returns { uid, month, posted, board, newPB, hadPB, pb }
+  //   posted: this game went on the leaderboard (it was the player's first)
+  //   board:  the player's leaderboard entry (this game, or their first game)
+  //   newPB / hadPB / pb: personal-best status after this game
   async function submit(result) {
     const uid = await playerUid();
     const month = periodKey();
@@ -123,16 +129,24 @@
       const list = LS.get(G.prefix + ":demoAttempts", []); list.push(attempt); LS.set(G.prefix + ":demoAttempts", list);
     }
 
-    // 2. personal bests on the monthly and all-time boards
-    const bests = {};
-    for (const period of [month, "all"]) {
-      const prev = await getMine(period, uid);
-      const better = !prev || result.score > prev.score || (result.score === prev.score && result.timeMs < prev.timeMs);
-      const rec = Object.assign({ name: result.name, role: result.role }, base);
-      if (better) await putBest(period, uid, rec);
-      bests[period] = { improved: better, hadPrevious: !!prev, best: better ? rec : prev };
+    // 2. leaderboard: first game only
+    const first = await getMine("all", uid);
+    const rec = Object.assign({ name: result.name, role: result.role }, base);
+    let posted = false;
+    if (!first) {
+      await putEntry("all", uid, rec);
+      await putEntry(month, uid, rec);
+      posted = true;
     }
-    return { uid, month, bests };
+
+    // 3. personal best (this device)
+    const pbKey = G.prefix + ":personalBest";
+    const pb = LS.get(pbKey, null) || (first ? first : null);
+    const newPB = !pb || result.score > pb.score || (result.score === pb.score && result.timeMs < pb.timeMs);
+    const bestNow = newPB ? base : { score: pb.score, correct: pb.correct, total: pb.total, timeMs: pb.timeMs };
+    LS.set(pbKey, bestNow);
+
+    return { uid, month, posted, board: posted ? rec : first, newPB, hadPB: !!pb, pb: bestNow };
   }
 
   // ---------- admin (dashboard) ----------

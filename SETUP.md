@@ -4,7 +4,7 @@ The site has three pages that share one Firebase database:
 
 | Page | Who uses it | What it does |
 |---|---|---|
-| `index.html` | Learners | The game. Every game counts; the leaderboard keeps each player's best. |
+| `index.html` | Learners | The game. Each player's first game goes on the leaderboard; later games are practice. |
 | `leaderboard.html` | Anyone | Public, view-only leaderboard (this month and all time). Safe to link from your website or social media. |
 | `dashboard.html` | You and named colleagues | Private per-question analytics. Requires signing in with an approved Google account. |
 
@@ -104,9 +104,7 @@ service cloud.firestore {
       allow read: if true;
       allow create: if request.auth != null && request.auth.uid == uid
         && validPeriod(period) && validEntry(request.resource.data, 12);
-      allow update: if request.auth != null && request.auth.uid == uid
-        && validEntry(request.resource.data, 12)
-        && request.resource.data.score >= resource.data.score;
+      allow update: if false;                      // first score only: entries are permanent
       allow delete: if isAdmin();
     }
     match /misconceptions_attempts/{attemptId} {
@@ -126,7 +124,7 @@ service cloud.firestore {
 What the rules guarantee:
 - The public can see leaderboard names, roles and scores, and nothing else.
 - Leaderboard names must be in "First L." form, so full names can't be posted.
-- A player can only change their own entry, and only to a higher score.
+- Each player's first score is permanent: leaderboard entries can't be changed once posted.
 - Per-question results can be read only by the accounts listed in `isAdmin()`.
 - Nobody can edit or delete anything except dashboard users.
 
@@ -152,7 +150,7 @@ To change anything later, upload the edited file to the same place in the reposi
 
 1. Open the game, play once, and confirm the results screen says your score is on the leaderboard. The yellow "Demo mode" notice should be gone.
 2. Open the public leaderboard in a private/incognito window. Your entry should appear.
-3. Play again with a better score and confirm your leaderboard entry updates (you should appear only once).
+3. Play again and confirm your leaderboard entry does not change (only your first game counts), while the results screen shows your personal best.
 4. Open the dashboard, sign in with your Google account, and confirm your games appear.
 5. In Firebase, open **Firestore** and its **Data** tab. You should see `misconceptions_boards` and `misconceptions_attempts`.
 
@@ -168,6 +166,14 @@ If something doesn't work, the browser's developer console (F12 → Console) usu
 - **Red bar segments** are wrong answers given in under 10 seconds. A question with low accuracy *and* a lot of fast wrong answers is flagged **Likely misconception**: people weren't unsure, they were confidently wrong.
 - **Export** gives a per-question summary or every individual answer as CSV for Excel. Exports never include names.
 - **Show sample data** is for demos only and is clearly labeled on screen and in export file names.
+
+## Leaderboard rules
+
+Leaderboards are **first-score**: only each player's first game is posted, and the database rules prevent it from ever being changed. That keeps the boards fair if prizes are offered. Players can keep playing to beat their **personal best**, which the results screen shows alongside their leaderboard score (with a "New personal best" badge), but later games never change the leaderboard. Every game, first or not, still goes to the dashboard.
+
+- **All time** lists every player's first game.
+- **This month** lists the players whose first game was this month, so each player appears on one monthly board only.
+- A player is identified by their browser. Someone who switches devices or clears their browser data could post a second "first" score under a new identity. For prizes, check winners' names, and remember that the Docebo version will tie scores to real learner accounts.
 
 ## 7. Managing the leaderboard
 
